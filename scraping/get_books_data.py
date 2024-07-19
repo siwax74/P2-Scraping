@@ -118,8 +118,9 @@ def extract_book_info(book_url):
         return {}  # Retourne un dictionnaire vide si l'extraction échoue
     
     book_info = {}
-    book_info['title'] = soup.find('h1').text.strip()  # Extrait le titre du livre
+    book_info['product_page_url'] = book_url
     book_info['upc'] = soup.find('th', string='UPC').find_next('td').text.strip()  # Extrait l'UPC du livre
+    book_info['title'] = soup.find('h1').text.strip()  # Extrait le titre du livre
     book_info['price_incl_tax'] = soup.find('th', string='Price (incl. tax)').find_next('td').text.strip()[1:]  # Extrait le prix TTC du livre
     book_info['price_excl_tax'] = soup.find('th', string='Price (excl. tax)').find_next('td').text.strip()[1:]  # Extrait le prix HT du livre
     book_info['availability'] = soup.find('th', string='Availability').find_next('td').text.strip()  # Extrait la disponibilité du livre
@@ -147,7 +148,7 @@ def write_to_csv(category_name, books):
     """
     filename = f"{category_name}.csv"  # Génère le nom du fichier CSV
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:  # Ouvre le fichier CSV en mode écriture
-        fieldnames = ['title', 'upc', 'price_incl_tax', 'price_excl_tax', 'availability', 'description', 'category', 'rating', 'image_url', 'image_path']  # Définit les en-têtes de colonnes
+        fieldnames = ['product_page_url', 'upc', 'title', 'price_incl_tax', 'price_excl_tax', 'availability', 'description', 'category', 'rating', 'image_url', 'image_path']  # Définit les en-têtes de colonnes
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)  # Crée un objet writer pour écrire dans le fichier CSV
         writer.writeheader()  # Écrit les en-têtes de colonnes
         writer.writerows(books)  # Écrit les informations des livres dans le fichier CSV
