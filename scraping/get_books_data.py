@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 def extract_soup(url):
     """
-    Extracte et retourne un objet BeautifulSoup à partir de l'URL donnée.
+    Extrait et retourne un objet BeautifulSoup à partir de l'URL donnée.
     
     Args:
         url (str): L'URL à partir de laquelle extraire le BeautifulSoup.
@@ -18,7 +18,7 @@ def extract_soup(url):
     """
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Lève une excepion si la requête échoue
+        response.raise_for_status()  # Lève une exception si la requête échoue
         return BeautifulSoup(response.content, "html.parser")
     except requests.exceptions.RequestException as e:
         print(f"Erreur lors de la récupération de {url}: {e}")
