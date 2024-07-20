@@ -148,34 +148,27 @@ def extract_book_info(book_url: str) -> Dict[str, Union[str, float]]:
     Returns:
         Dict[str, Union[str, float]]: Dictionnaire contenant les informations extraites du livre.
     """
-    soup = extract_soup(book_url)  # Extrait le contenu HTML de la page du livre
-    if not soup:  # Vérifie si le contenu HTML est vide
-        return {}  # Retourne un dictionnaire vide si le contenu est vide
+    soup = extract_soup(book_url)  # Extrait et parse le contenu HTML de l'URL du livre
+    if not soup:
+        return {}  # Retourne un dictionnaire vide si l'extraction échoue
     
-    book_info: Dict[str, Union[str, float]] = {}  # Initialise un dictionnaire pour les informations du livre
-    try:
-        book_info['product_page_url'] = book_url  # Ajoute l'URL de la page du produit au dictionnaire
-        book_info['upc'] = soup.find('th', string='UPC').find_next('td').text.strip()  # Extrait le code UPC du livre
-        book_info['title'] = soup.find('h1').text.strip()  # Extrait le titre du livre
-        book_info['price_incl_tax'] = float(soup.find('th', string='Price (incl. tax)').find_next('td').text.strip()[1:])  # Extrait le prix TTC
-        book_info['price_excl_tax'] = float(soup.find('th', string='Price (excl. tax)').find_next('td').text.strip()[1:])  # Extrait le prix HT
-        book_info['availability'] = soup.find('th', string='Availability').find_next('td').text.strip()  # Extrait la disponibilité du livre
-        book_info['description'] = soup.find('meta', attrs={'name': 'description'})['content'].strip()  # Extrait la description du livre
-        book_info['category'] = soup.find('ul', class_='breadcrumb').find_all('li')[2].text.strip()  # Extrait la catégorie du livre
-        book_info['rating'] = soup.find('p', class_='star-rating')['class'][1]  # Extrait la note du livre
-        
-        image_url = soup.find('div', class_='item active').find('img')['src']  # Extrait l'URL de l'image du livre
-        parsed_uri = urlparse(book_url)  # Parse l'URL du livre
-        domain = f"{parsed_uri.scheme}://{parsed_uri.netloc}"  # Construit le domaine de l'URL
-        absolute_image_url = urljoin(domain, image_url)  # Construit l'URL absolue de l'image
-        
-        image_name = f"{sanitize_filename(book_info['title'])}.jpg"  # Construit le nom de l'image
-        download_image(absolute_image_url, book_info['category'], image_name)  # Télécharge l'image du livre
-        book_info['image_url'] = absolute_image_url  # Ajoute l'URL de l'image au dictionnaire
-        book_info['image_path'] = os.path.join("images", sanitize_filename(book_info['category']), image_name)  # Ajoute le chemin de l'image au dictionnaire
-    except AttributeError as e:  # Capture les exceptions d'attributs manquants
-        print(f"Erreur lors de l'extraction des informations du livre depuis {book_url}: {e}")  # Affiche un message d'erreur
-        return {}  # Retourne un dictionnaire vide en cas d'erreur
+    book_info = {}
+    book_info['title'] = soup.find('h1').text.strip()  # Extrait le titre du livre
+    book_info['upc'] = soup.find('th', string='UPC').find_next('td').text.strip()  # Extrait l'UPC du livre
+    book_info['price_incl_tax'] = soup.find('th', string='Price (incl. tax)').find_next('td').text.strip()[1:]  # Extrait le prix TTC du livre
+    book_info['price_excl_tax'] = soup.find('th', string='Price (excl. tax)').find_next('td').text.strip()[1:]  # Extrait le prix HT du livre
+    book_info['availability'] = soup.find('th', string='Availability').find_next('td').text.strip()  # Extrait la disponibilité du livre
+    book_info['description'] = soup.find('meta', attrs={'name': 'description'})['content'].strip()  # Extrait la description du livre
+    book_info['category'] = soup.find('ul', class_='breadcrumb').find_all('li')[2].text.strip()  # Extrait la catégorie du livre
+    book_info['rating'] = soup.find('p', class_='star-rating')['class'][1]  # Extrait la note du livre
+    image_url = soup.find('div', class_='item active').find('img')['src']  # Extrait l'URL de l'image
+    parsed_uri = urlparse(book_url)  # Parse l'URL du livre
+    domain = '{uri.scheme}://{uri.netloc}'.format(uri=parsed_uri)  # Construit le domaine de l'URL
+    absolute_image_url = urljoin(domain, image_url)  # Génère l'URL absolue de l'image
+    image_name = f"{book_info['title']}.jpg"  # Génère le nom de l'image
+    download_image(absolute_image_url, book_info['category'], image_name)  # Télécharge l'image
+    book_info['image_url'] = absolute_image_url  # Ajoute l'URL de l'image aux informations du livre
+    book_info['image_path'] = os.path.join("images", book_info['category'], image_name)  # Ajoute le chemin de l'image aux informations du livre
     
     return book_info  # Retourne le dictionnaire contenant les informations du livre
 
@@ -187,12 +180,30 @@ def write_to_csv(category_name: str, books: List[Dict[str, Union[str, float]]]) 
         category_name (str): Nom de la catégorie pour laquelle écrire le fichier CSV.
         books (List[Dict[str, Union[str, float]]]): Liste des livres à écrire dans le fichier CSV.
     """
-    filename = f"{sanitize_filename(category_name)}.csv"  # Construit le nom du fichier CSV
-    try:
-        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:  # Ouvre le fichier CSV en mode écriture
-            fieldnames = ['product_page_url', 'upc', 'title', 'price_incl_tax', 'price_excl_tax', 'availability', 'description', 'category', 'rating', 'image_url', 'image_path']  # Définition des en-têtes des colonnes
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)  # Crée un objet DictWriter pour écrire le dictionnaire
-            writer.writeheader()  # Écrit les en-têtes des colonnes
-            writer.writerows(books)  # Écrit les lignes de données des livres
-    except IOError as e:  # Capture les exceptions d'entrée/sortie
-        print(f"Erreur lors de l'écriture dans le fichier CSV {filename}: {e}")  # Affiche un message d'erreur
+    filename = f"{category_name}.csv"  # Génère le nom du fichier CSV
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:  # Ouvre le fichier CSV en mode écriture
+        fieldnames = ['title', 'upc', 'price_incl_tax', 'price_excl_tax', 'availability', 'description', 'category', 'rating', 'image_url', 'image_path']  # Définit les en-têtes de colonnes
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)  # Crée un objet writer pour écrire dans le fichier CSV
+        writer.writeheader()  # Écrit les en-têtes de colonnes
+        writer.writerows(books)  # Écrit les informations des livres dans le fichier CSV
+
+def etl(url):
+    """
+    Fonction principale qui effectue l'ETL (Extraction, Transformation, Load) pour le site de livres.
+    
+    Args:
+        url (str): L'URL de la page d'accueil du site de livres.
+    """
+    categories = get_categories(url)  # Récupère les URLs des catégories
+    for category_url in categories:
+        print(f"Extraction de la catégorie: {category_url}")  # Affiche un message d'extraction de catégorie
+        books = []
+        book_urls = get_books_in_category(category_url)  # Récupère les URLs des livres dans la catégorie
+        for book_url in book_urls:
+            print(f"  Extraction du livre: {book_url}")  # Affiche un message d'extraction de livre
+            book_info = extract_book_info(book_url)  # Extrait les informations du livre
+            if book_info:
+                books.append(book_info)  # Ajoute les informations du livre à la liste
+                print(book_info)  # Affiche les informations du livre
+        category_name = category_url.rsplit('/', 2)[-2]  # Extrait le nom de la catégorie à partir de l'URL
+        write_to_csv(category_name, books)  # Écrit les informations des livres dans un fichier CSV
