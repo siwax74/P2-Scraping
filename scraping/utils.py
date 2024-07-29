@@ -69,7 +69,6 @@ def extract_soup(url: str) -> Optional[BeautifulSoup]:
     try:
         response = requests.get(url)
         response.raise_for_status()
-        print(response.content)
         return BeautifulSoup(response.content, "html.parser")
     except requests.exceptions.RequestException as e:
         print(f"Erreur lors de la récupération de {url}: {e}")
