@@ -14,7 +14,7 @@ Avant de commencer, assurez-vous d'avoir installé les éléments suivants sur v
 1. Clonez ce dépôt sur votre machine locale.
 
     ```
-    git clone https://github.com/siwax74/P2-Parse.git
+    git clone https://github.com/siwax74/P2.git
     cd votre-repo
     ```
 
